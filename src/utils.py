@@ -8,6 +8,7 @@ import matplotlib.pyplot as plr
 import seaborn as sns
 
 from sklearn.metrics import r2_score
+from sklearn.model_selection import RandomizedSearchCV
 
 from src.exception import CustomException
 
@@ -25,12 +26,18 @@ def save_object(file_path , obj):
         raise CustomException(e , sys)
 
 
-def evaluate_models(X_train , y_train , X_test , y_test , models):
+def evaluate_models(X_train , y_train , X_test , y_test , models , params):
     try:
         report = {}
         for i in range(len(list(models))):
             model = list(models.values())[i]  # Accessing a model
+            para = params[list(models.keys())[i]]
 
+            rs = RandomizedSearchCV(model , para , cv = 3 , n_jobs= -1, n_iter=10)
+            rs.fit(X_train , y_train)
+
+
+            model.set_params(**rs.best_params_)
             model.fit(X_train , y_train) # Train a model
 
             y_train_pred = model.predict(X_train)
@@ -44,5 +51,6 @@ def evaluate_models(X_train , y_train , X_test , y_test , models):
             report[list(models.keys())[i]] = test_model_score
 
         return report
-    except:
-        pass
+    except Exception as e:
+        # logging.error(f"Error occurred while evaluating models: {e}")
+        raise CustomException(f"Error occurred while evaluating models: {e}", sys)
